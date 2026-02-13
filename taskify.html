@@ -32,7 +32,7 @@
         }
         h1 { text-align: center; color: var(--text-color); }
         
-        /* Dashboard styling for fix */
+        
         .dashboard { text-align: center; margin-bottom: 20px; }
 
         #taskInput {
@@ -43,7 +43,6 @@
             margin-right: 10px;
             transition: border-color 0.3s;
         }
-        /* Instruction 1: Focus styling */
         #taskInput:focus {
             border-color: #007bff;
             outline: none;
@@ -77,29 +76,27 @@
             display: flex;
             align-items: center;
             cursor: move;
-            /* Instruction 19: Styled Animations */
+            
             animation: fadeIn 0.4s ease-out;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Instruction 7: Hover effect */
+        
         .task:hover { background-color: var(--hover-bg); }
-        /* Instruction 21: Highlight selected */
+    
         .task.selected { background-color: var(--selected-bg); border-color: #007bff; }
-        /* Instruction 10: Strike through and color change */
         .task.completed span { text-decoration: line-through; color: var(--completed-color); }
         
         .task input[type="checkbox"] { margin-right: 10px; }
         .task span { flex-grow: 1; cursor: pointer; }
         .task input[type="text"] { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 16px; }
         
-        /* Instruction 16: Icons for buttons */
+        
         .task button { margin-left: 10px; background: none; border: none; cursor: pointer; font-size: 18px; }
         .completeBtn { color: #28a745; }
         .removeBtn { color: #dc3545; }
-        /* Instruction 11: Disable delete while editing */
         .editing .removeBtn { pointer-events: none; opacity: 0.3; }
 
         #counters {
@@ -142,7 +139,6 @@
     </div>
     
     <script>
-        // Instruction 17: Persist in Local Storage
         let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
         let originalOrder = JSON.parse(localStorage.getItem('originalOrder')) || [];
         let editedCount = parseInt(localStorage.getItem('editedCount')) || 0;
@@ -160,7 +156,6 @@
                 li.draggable = true;
                 li.dataset.id = task.id;
 
-                // Instruction 5 & 6: Selection checkboxes
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = task.selected;
@@ -168,10 +163,9 @@
 
                 const span = document.createElement('span');
                 span.textContent = task.text;
-                // Instruction 11: Edit on double click
                 span.ondblclick = () => editTask(task.id);
                 
-                // Instruction 11: Tap-and-hold for mobile edit
+                
                 let timer;
                 span.ontouchstart = () => timer = setTimeout(() => editTask(task.id), 700);
                 span.ontouchend = () => clearTimeout(timer);
@@ -182,13 +176,11 @@
                 completeBtn.onclick = () => toggleComplete(task.id);
 
                 const removeBtn = document.createElement('button');
-                removeBtn.innerHTML = '✕'; // Instruction 16
+                removeBtn.innerHTML = '✕'; 
                 removeBtn.className = 'removeBtn';
                 removeBtn.onclick = () => removeTask(task.id, task.text);
 
                 li.append(checkbox, span, completeBtn, removeBtn);
-                
-                // Instruction 18: Drag and Drop
                 li.ondragstart = () => { draggedElement = li; };
                 li.ondragover = (e) => e.preventDefault();
                 li.ondrop = () => {
@@ -206,24 +198,23 @@
             updateCounters();
         }
 
-        // Instruction 1, 2, 3: Add Task Logic
         function addTask() {
             const text = taskInput.value.trim();
             if (!text) {
               return alert("Task cannot be empty!");
-              }// Prevent empty (Inst 2)
+            }
             if (tasks.some(t => t.text.toLowerCase() === text.toLowerCase())) {
                 return alert("Duplicate task!"); // Prevent duplicates (Inst 3)
             }
 
             const newTask = { id: Date.now(), text, completed: false, selected: false };
-            tasks.unshift(newTask); // The fix: Add to top
+            tasks.unshift(newTask);
             originalOrder.unshift({...newTask});
             taskInput.value = '';
             save();
         }
 
-        // Instruction 11 & 13: Edit Validation
+        
         function editTask(id) {
             const task = tasks.find(t => t.id == id);
             const li = taskList.querySelector(`[data-id="${id}"]`);
@@ -258,7 +249,6 @@
             input.focus();
         }
 
-        // Instruction 4: Remove Task
         function removeTask(id, name) {
             if (confirm(`Delete "${name}"?`)) {
                 tasks = tasks.filter(t => t.id !== id);
@@ -272,8 +262,6 @@
             t.selected = !t.selected;
             save();
         }
-
-        // Instruction 10: Complete Task
         function toggleComplete(id) {
             const t = tasks.find(t => t.id == id);
             t.completed = !t.completed;
@@ -295,11 +283,9 @@
             document.getElementById('deletedCounter').textContent = deletedCount;
         }
 
-        // Event Listeners
         document.getElementById('addBtn').onclick = addTask;
         taskInput.onkeypress = (e) => e.key === 'Enter' && addTask();
         
-        // Instruction 8: Remove selected via button or key
         function deleteSelected() {
             const selected = tasks.filter(t => t.selected);
             if (selected.length && confirm(`Delete ${selected.length} tasks?`)) {
@@ -312,18 +298,16 @@
         document.getElementById('deleteSelectedBtn').onclick = deleteSelected;
         document.addEventListener('keydown', (e) => { if (e.key === 'Delete') deleteSelected(); });
 
-        // Instruction 20: Theme Toggle
         document.getElementById('themeToggle').onclick = () => {
             document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
             localStorage.setItem('theme', document.body.dataset.theme);
         };
 
-        // Instruction 23: Sorting logic
         document.getElementById('sortAsc').onclick = () => { tasks.sort((a,b) => a.text.localeCompare(b.text)); save(); };
         document.getElementById('sortDesc').onclick = () => { tasks.sort((a,b) => b.text.localeCompare(a.text)); save(); };
         document.getElementById('resetOrder').onclick = () => { tasks = [...originalOrder]; save(); };
 
-        // Init Theme
+        
         document.body.dataset.theme = localStorage.getItem('theme') || 'light';
         renderTasks();
     </script>
