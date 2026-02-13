@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker</title>
+    <style>
+        :root {
+            --bg-color: lavender;
+            --text-color: #333;
+            --task-bg: #fff;
+            --completed-color: #888;
+            --hover-bg: #e0e0e0;
+            --selected-bg: #cce7ff;
+            --border-color: #ccc;
+        }
+        [data-theme="dark"] {
+            --bg-color: #333;
+            --text-color: #f4f4f4;
+            --task-bg: #444;
+            --completed-color: #aaa;
+            --hover-bg: #555;
+            --selected-bg: #555;
+            --border-color: #666;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        h1 { text-align: center; color: var(--text-color); }
+        
+        /* Dashboard styling for fix */
+        .dashboard { text-align: center; margin-bottom: 20px; }
+
+        #taskInput {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-right: 10px;
+            transition: border-color 0.3s;
+        }
+        /* Instruction 1: Focus styling */
+        #taskInput:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        #addBtn { background-color: #28a745; color: white; }
+        #deleteSelectedBtn { background-color: #dc3545; color: white; }
+        #themeToggle { background-color: white; color: black; border: 1px solid #ccc; }
+        .sortBtn { background-color: #17a2b8; color: white; }
+
+        #taskList {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        .task {
+            background-color: var(--task-bg);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            cursor: move;
+            /* Instruction 19: Styled Animations */
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Instruction 7: Hover effect */
+        .task:hover { background-color: var(--hover-bg); }
+        /* Instruction 21: Highlight selected */
+        .task.selected { background-color: var(--selected-bg); border-color: #007bff; }
+        /* Instruction 10: Strike through and color change */
+        .task.completed span { text-decoration: line-through; color: var(--completed-color); }
+        
+        .task input[type="checkbox"] { margin-right: 10px; }
+        .task span { flex-grow: 1; cursor: pointer; }
+        .task input[type="text"] { flex-grow: 1; border: none; background: transparent; color: var(--text-color); font-size: 16px; }
+        
+        /* Instruction 16: Icons for buttons */
+        .task button { margin-left: 10px; background: none; border: none; cursor: pointer; font-size: 18px; }
+        .completeBtn { color: #28a745; }
+        .removeBtn { color: #dc3545; }
+        /* Instruction 11: Disable delete while editing */
+        .editing .removeBtn { pointer-events: none; opacity: 0.3; }
+
+        #counters {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+        .counter { font-weight: bold; margin: 5px; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+        <h1>Task Tracker</h1>
+        <input type="text" id="taskInput" placeholder="Enter a new task">
+        <button id="addBtn">Add Task</button>
+        <button id="deleteSelectedBtn">🗑️</button>
+        <button id="themeToggle">🌓</button>
+        <br>
+        <button class="sortBtn" id="sortAsc">Sort A-Z</button>
+        <button class="sortBtn" id="sortDesc">Sort Z-A</button>
+        <button class="sortBtn" id="resetOrder">Reset Order</button>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    </header>
+
+        <ul id="taskList">
+            </ul>
+
+        <footer id="counters">
+            <span>Total: <b id="totalCounter">0</b></span>
+            <span>Completed: <b id="completedCounter">0</b></span>
+            <span>Edited: <b id="editedCounter">0</b></span>
+            <span>Deleted: <b id="deletedCounter">0</b></span>
+        </footer>
+    </div>
+    
+    <script>
+        // Instruction 17: Persist in Local Storage
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let originalOrder = JSON.parse(localStorage.getItem('originalOrder')) || [];
+        let editedCount = parseInt(localStorage.getItem('editedCount')) || 0;
+        let deletedCount = parseInt(localStorage.getItem('deletedCount')) || 0;
+        let draggedElement = null;
+
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = `task ${task.completed ? 'completed' : ''} ${task.selected ? 'selected' : ''}`;
+                li.draggable = true;
+                li.dataset.id = task.id;
+
+                // Instruction 5 & 6: Selection checkboxes
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.selected;
+                checkbox.onclick = (e) => { e.stopPropagation(); toggleSelect(task.id); };
+
+                const span = document.createElement('span');
+                span.textContent = task.text;
+                // Instruction 11: Edit on double click
+                span.ondblclick = () => editTask(task.id);
+                
+                // Instruction 11: Tap-and-hold for mobile edit
+                let timer;
+                span.ontouchstart = () => timer = setTimeout(() => editTask(task.id), 700);
+                span.ontouchend = () => clearTimeout(timer);
+
+                const completeBtn = document.createElement('button');
+                completeBtn.innerHTML = '✓'; // Instruction 16
+                completeBtn.className = 'completeBtn';
+                completeBtn.onclick = () => toggleComplete(task.id);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '✕'; // Instruction 16
+                removeBtn.className = 'removeBtn';
+                removeBtn.onclick = () => removeTask(task.id, task.text);
+
+                li.append(checkbox, span, completeBtn, removeBtn);
+                
+                // Instruction 18: Drag and Drop
+                li.ondragstart = () => { draggedElement = li; };
+                li.ondragover = (e) => e.preventDefault();
+                li.ondrop = () => {
+                    if (draggedElement !== li) {
+                        const fromIdx = tasks.findIndex(t => t.id == draggedElement.dataset.id);
+                        const toIdx = tasks.findIndex(t => t.id == li.dataset.id);
+                        const [item] = tasks.splice(fromIdx, 1);
+                        tasks.splice(toIdx, 0, item);
+                        save();
+                    }
+                };
+
+                taskList.appendChild(li);
+            });
+            updateCounters();
+        }
+
+        // Instruction 1, 2, 3: Add Task Logic
+        function addTask() {
+            const text = taskInput.value.trim();
+            if (!text) {
+              return alert("Task cannot be empty!");
+              }// Prevent empty (Inst 2)
+            if (tasks.some(t => t.text.toLowerCase() === text.toLowerCase())) {
+                return alert("Duplicate task!"); // Prevent duplicates (Inst 3)
+            }
+
+            const newTask = { id: Date.now(), text, completed: false, selected: false };
+            tasks.unshift(newTask); // The fix: Add to top
+            originalOrder.unshift({...newTask});
+            taskInput.value = '';
+            save();
+        }
+
+        // Instruction 11 & 13: Edit Validation
+        function editTask(id) {
+            const task = tasks.find(t => t.id == id);
+            const li = taskList.querySelector(`[data-id="${id}"]`);
+            li.classList.add('editing');
+            const span = li.querySelector('span');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = task.text;
+
+            const finishEdit = () => {
+                const newVal = input.value.trim();
+                if (!newVal){
+                  alert("Task cannot be empty!");
+                  renderTasks();
+                  return;
+                }
+                if (newVal !== task.text) {
+                    if (tasks.some(t => t.id !== id && t.text.toLowerCase() === newVal.toLowerCase())) {
+                        alert("Duplicate exists!");
+                    } else {
+                        task.text = newVal;
+                        editedCount++; // Inst 12
+                    }
+                }
+                save();
+            };
+
+            input.onblur = finishEdit;
+            input.onkeypress = (e) => { if(e.key === 'Enter') finishEdit(); };
+            span.replaceWith(input);
+            input.focus();
+        }
+
+        // Instruction 4: Remove Task
+        function removeTask(id, name) {
+            if (confirm(`Delete "${name}"?`)) {
+                tasks = tasks.filter(t => t.id !== id);
+                deletedCount++; // Inst 9
+                save();
+            }
+        }
+
+        function toggleSelect(id) {
+            const t = tasks.find(t => t.id == id);
+            t.selected = !t.selected;
+            save();
+        }
+
+        // Instruction 10: Complete Task
+        function toggleComplete(id) {
+            const t = tasks.find(t => t.id == id);
+            t.completed = !t.completed;
+            save();
+        }
+
+        function save() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('originalOrder', JSON.stringify(originalOrder));
+            localStorage.setItem('editedCount', editedCount);
+            localStorage.setItem('deletedCount', deletedCount);
+            renderTasks();
+        }
+
+        function updateCounters() {
+            document.getElementById('totalCounter').textContent = tasks.length;
+            document.getElementById('completedCounter').textContent = tasks.filter(t => t.completed).length;
+            document.getElementById('editedCounter').textContent = editedCount;
+            document.getElementById('deletedCounter').textContent = deletedCount;
+        }
+
+        // Event Listeners
+        document.getElementById('addBtn').onclick = addTask;
+        taskInput.onkeypress = (e) => e.key === 'Enter' && addTask();
+        
+        // Instruction 8: Remove selected via button or key
+        function deleteSelected() {
+            const selected = tasks.filter(t => t.selected);
+            if (selected.length && confirm(`Delete ${selected.length} tasks?`)) {
+                deletedCount += selected.length;
+                tasks = tasks.filter(t => !t.selected);
+                save();
+            }
+        }
+
+        document.getElementById('deleteSelectedBtn').onclick = deleteSelected;
+        document.addEventListener('keydown', (e) => { if (e.key === 'Delete') deleteSelected(); });
+
+        // Instruction 20: Theme Toggle
+        document.getElementById('themeToggle').onclick = () => {
+            document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', document.body.dataset.theme);
+        };
+
+        // Instruction 23: Sorting logic
+        document.getElementById('sortAsc').onclick = () => { tasks.sort((a,b) => a.text.localeCompare(b.text)); save(); };
+        document.getElementById('sortDesc').onclick = () => { tasks.sort((a,b) => b.text.localeCompare(a.text)); save(); };
+        document.getElementById('resetOrder').onclick = () => { tasks = [...originalOrder]; save(); };
+
+        // Init Theme
+        document.body.dataset.theme = localStorage.getItem('theme') || 'light';
+        renderTasks();
+    </script>
+</body>
+</html>
