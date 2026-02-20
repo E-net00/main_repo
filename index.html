@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Guessing Game</title>
+    <style>
+        body {
+            font-family: Times New Roman, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #c6e2ff;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            border-color: olive;
+            border-radius: 10px;
+        }
+        button {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+            border-radius: 10px;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Word Guessing Game</h1>
+    <p>Guess the animal! You have 5 attempts.</p>
+    <input type="text" id="guessInput" placeholder="Enter your guess">
+    <button id="submitBtn">Submit</button>
+    <div id="message"></div>
+    
+    <div id="attempts" style="margin: 15px 0; font-size: 16px; color: #333;"></div>
+    
+    <div id="hint" style="margin: 10px 0; font-size: 14px; color: #666; font-style: italic;"></div>
+    
+    <button id="restartBtn" style="display: none;">Restart</button>
+
+    <script src="script.js"></script>
+</body>
+
+    <p style="text-align: center; font-size: 8px">  Elmae Moreno BSIT-2D </p> 
+</html>
