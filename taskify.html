@@ -30,11 +30,253 @@
             margin: 20px;
             transition: background-color 0.3s, color 0.3s;
         }
-        h1 { text-align: center; color: var(--text-color); }
+        h1 { text-align: center; }
         
-        
-        .dashboard { text-align: center; margin-bottom: 20px;  position: relative; z-index:10;}
+        .dashboard { text-align: center; margin-bottom: 20px; }
 
+        #taskInput {
+            width: 60%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: border-color 0.3s;
+        }
+
+        #taskInput:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        #addBtn { background-color: #28a745; color: white; }
+        #deleteSelectedBtn { background-color: #dc3545; color: white; }
+        #themeToggle { background-color: white; color: black; border: 1px solid #ccc; }
+        .sortBtn { background-color: #17a2b8; color: white; }
+
+        #taskList {
+            list-style: none;
+            padding: 0;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .task {
+            background-color: var(--task-bg);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .task:hover { background-color: var(--hover-bg); }
+        .task.selected { background-color: var(--selected-bg); border-color: #007bff; }
+        .task.completed span { text-decoration: line-through; color: var(--completed-color); }
+        
+        .task input[type="checkbox"] { margin-right: 10px; }
+        .task span { flex-grow: 1; cursor: pointer; }
+        
+        .task button { margin-left: 10px; background: none; border: none; cursor: pointer; font-size: 18px; }
+        .completeBtn { color: #28a745; }
+        .removeBtn { color: #dc3545; }
+
+        #counters {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Task Tracker</h1>
+        <input type="text" id="taskInput" placeholder="Enter a new task">
+        <button id="addBtn">Add Task</button>
+        <button id="deleteSelectedBtn" title="Delete Selected">🗑️</button>
+        <button id="themeToggle">🌓</button>
+        <br>
+        <button class="sortBtn" id="sortAsc">Sort A-Z</button>
+        <button class="sortBtn" id="sortDesc">Sort Z-A</button>
+        <button class="sortBtn" id="resetOrder">Reset Order</button>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    <footer id="counters">
+        <span>Total: <b id="totalCounter">0</b></span>
+        <span>Completed: <b id="completedCounter">0</b></span>
+        <span>Edited: <b id="editedCounter">0</b></span>
+        <span>Deleted: <b id="deletedCounter">0</b></span>
+    </footer>
+
+    <p style="text-align:center; font-size: 10px; margin-top: 20px;">Programmed by: Elmae Moreno BSIT-2D</p>
+    
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let originalOrder = JSON.parse(localStorage.getItem('originalOrder')) || [];
+        let editedCount = parseInt(localStorage.getItem('editedCount')) || 0;
+        let deletedCount = parseInt(localStorage.getItem('deletedCount')) || 0;
+
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+
+        function renderTasks() {
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                // FIXED: Used backticks for class names
+                li.className = `task ${task.completed ? 'completed' : ''} ${task.selected ? 'selected' : ''}`;
+                li.dataset.id = task.id;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.selected;
+                checkbox.onclick = (e) => { e.stopPropagation(); toggleSelect(task.id); };
+
+                const span = document.createElement('span');
+                span.textContent = task.text;
+                span.ondblclick = () => editTask(task.id);
+
+                const completeBtn = document.createElement('button');
+                completeBtn.innerHTML = '✓';
+                completeBtn.className = 'completeBtn';
+                completeBtn.onclick = () => toggleComplete(task.id);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '✕'; 
+                removeBtn.className = 'removeBtn';
+                removeBtn.onclick = () => removeTask(task.id, task.text);
+
+                li.append(checkbox, span, completeBtn, removeBtn);
+                taskList.appendChild(li);
+            });
+            updateCounters();
+        }
+
+        function addTask() {
+            const text = taskInput.value.trim();
+            if (!text) return alert("Task cannot be empty!");
+            if (tasks.some(t => t.text.toLowerCase() === text.toLowerCase())) {
+                return alert("Duplicate task!"); 
+            }
+
+            const newTask = { id: Date.now(), text, completed: false, selected: false };
+            tasks.unshift(newTask);
+            originalOrder.unshift({...newTask});
+            taskInput.value = '';
+            save();
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id == id);
+            // FIXED: Used backticks for selector
+            const li = taskList.querySelector(`[data-id="${id}"]`);
+            const span = li.querySelector('span');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = task.text;
+            input.style.flexGrow = "1";
+
+            const finishEdit = () => {
+                const newVal = input.value.trim();
+                if (!newVal){
+                    alert("Task cannot be empty!");
+                    renderTasks();
+                    return;
+                }
+                if (newVal !== task.text) {
+                    task.text = newVal;
+                    editedCount++;
+                }
+                save();
+            };
+
+            input.onblur = finishEdit;
+            input.onkeypress = (e) => { if(e.key === 'Enter') finishEdit(); };
+            span.replaceWith(input);
+            input.focus();
+        }
+
+        function removeTask(id, name) {
+            // FIXED: Used backticks for template string
+            if (confirm(`Delete "${name}"?`)) {
+                tasks = tasks.filter(t => t.id !== id);
+                deletedCount++;
+                save();
+            }
+        }
+
+        function toggleSelect(id) {
+            const t = tasks.find(t => t.id == id);
+            t.selected = !t.selected;
+            save();
+        }
+
+        function toggleComplete(id) {
+            const t = tasks.find(t => t.id == id);
+            t.completed = !t.completed;
+            save();
+        }
+
+        function deleteSelected() {
+            const selected = tasks.filter(t => t.selected);
+            // FIXED: Used backticks for template string
+            if (selected.length && confirm(`Delete ${selected.length} tasks?`)) {
+                deletedCount += selected.length;
+                tasks = tasks.filter(t => !t.selected);
+                save();
+            }
+        }
+
+        function save() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('originalOrder', JSON.stringify(originalOrder));
+            localStorage.setItem('editedCount', editedCount);
+            localStorage.setItem('deletedCount', deletedCount);
+            renderTasks();
+        }
+
+        function updateCounters() {
+            document.getElementById('totalCounter').textContent = tasks.length;
+            document.getElementById('completedCounter').textContent = tasks.filter(t => t.completed).length;
+            document.getElementById('editedCounter').textContent = editedCount;
+            document.getElementById('deletedCounter').textContent = deletedCount;
+        }
+
+        document.getElementById('addBtn').onclick = addTask;
+        taskInput.onkeypress = (e) => { if (e.key === 'Enter') addTask(); };
+        document.getElementById('deleteSelectedBtn').onclick = deleteSelected;
+
+        document.getElementById('themeToggle').onclick = () => {
+            document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', document.body.dataset.theme);
+        };
+
+        document.getElementById('sortAsc').onclick = () => { tasks.sort((a,b) => a.text.localeCompare(b.text)); save(); };
+        document.getElementById('sortDesc').onclick = () => { tasks.sort((a,b) => b.text.localeCompare(a.text)); save(); };
+        document.getElementById('resetOrder').onclick = () => { tasks = [...originalOrder]; save(); };
+
+        document.body.dataset.theme = localStorage.getItem('theme') || 'light';
+        renderTasks();
+    </script>
+</body>
+                                                          </html>
         #taskInput {
             width: 70%;
             padding: 10px;
